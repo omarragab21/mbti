@@ -38,7 +38,15 @@ const testSchema = z.object({
 // POST /api/tests — create test
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body: unknown;
+
+    try {
+      body = await req.json();
+    } catch (jsonErr) {
+      console.error('[POST /api/tests] Invalid JSON body:', jsonErr);
+      return NextResponse.json({ error: 'صيغة JSON غير صحيحة' }, { status: 400 });
+    }
+
     const parsed = testSchema.safeParse(body);
 
     if (!parsed.success) {

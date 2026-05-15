@@ -1,14 +1,26 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import path from 'path';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const DEFAULT_SQLITE_DATABASE_URL = 'file:./prisma/dev.db';
+
+function getSqliteDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL?.trim() || DEFAULT_SQLITE_DATABASE_URL;
+
+  if (databaseUrl === ':memory:' || databaseUrl.startsWith('file:')) {
+    return databaseUrl;
+  }
+
+  throw new Error(
+    'DATABASE_URL must be a SQLite file: URL for the current Prisma schema. Use PostgreSQL in production only after switching the Prisma provider and adapter.'
+  );
+}
+
 function createPrismaClient() {
-  const dbPath = path.resolve(process.cwd(), 'prisma/dev.db');
-  const adapter = new PrismaBetterSqlite3({ url: dbPath });
+  const adapter = new PrismaBetterSqlite3({ url: getSqliteDatabaseUrl() });
   return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
 }
 

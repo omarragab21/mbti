@@ -6,7 +6,7 @@
 
 ## المتطلبات
 
-- Node.js 18+
+- Node.js 20.19+
 - npm
 
 ---
@@ -29,15 +29,16 @@ npm install
 cp .env.example .env
 ```
 
-ثم أضف مفتاح OpenAI في ملف `.env`:
+ثم أضف متغيرات البيئة في ملف `.env`:
 
 ```env
 DATABASE_URL="file:./prisma/dev.db"
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1
 ```
 
 > **ملاحظة:** لا تشارك مفتاح API أبدًا. يُستخدم فقط من جانب الخادم.
+> SQLite مناسب للتطوير المحلي فقط. في الإنتاج على Vercel استخدم قاعدة بيانات دائمة مثل PostgreSQL، ثم حدّث Prisma provider/adapter بما يناسبها قبل استقبال بيانات حقيقية.
 
 ### 3. إعداد قاعدة البيانات
 
@@ -125,6 +126,28 @@ npx prisma db seed
 # فتح واجهة إدارة قاعدة البيانات
 npm run db:studio
 ```
+
+## النشر على Vercel
+
+قبل النشر تأكد من إضافة متغيرات البيئة في Vercel:
+
+```bash
+vercel env add OPENAI_API_KEY production
+vercel env add OPENAI_MODEL production
+vercel env add DATABASE_URL production
+```
+
+ثم انشر:
+
+```bash
+npm install
+npm run build
+vercel login
+vercel link
+vercel --prod
+```
+
+أمر البناء يشغّل `prisma generate` تلقائيًا قبل `next build`.
 
 ---
 

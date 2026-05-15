@@ -8,6 +8,34 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+type TestOption = {
+  id: string;
+  label: string;
+  value: string;
+};
+
+type TestQuestion = {
+  id: string;
+  order: number;
+  title: string;
+  axis: string;
+  options: TestOption[];
+};
+
+type EditOption = {
+  id?: string;
+  label: string;
+  value: string;
+};
+
+type EditQuestion = {
+  id: string;
+  order: number;
+  title: string;
+  axis: string;
+  options: [EditOption, EditOption];
+};
+
 export default async function EditTestPage({ params }: Props) {
   const { id } = await params;
 
@@ -28,19 +56,20 @@ export default async function EditTestPage({ params }: Props) {
     title: test.title,
     slug: test.slug,
     intro: test.intro,
-    questions: test.questions.map((q) => ({
-      id: q.id,
-      order: q.order,
-      title: q.title,
-      axis: q.axis,
-      options: [
+    questions: test.questions.map((q: TestQuestion): EditQuestion => {
+      const options: [EditOption, EditOption] = [
         { id: q.options[0]?.id, label: q.options[0]?.label ?? '', value: q.options[0]?.value ?? '' },
         { id: q.options[1]?.id, label: q.options[1]?.label ?? '', value: q.options[1]?.value ?? '' },
-      ] as [
-        { id?: string; label: string; value: string },
-        { id?: string; label: string; value: string },
-      ],
-    })),
+      ];
+
+      return {
+        id: q.id,
+        order: q.order,
+        title: q.title,
+        axis: q.axis,
+        options,
+      };
+    }),
   };
 
   return (

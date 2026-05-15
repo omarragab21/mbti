@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { openai, OPENAI_MODEL } from '@/lib/openai';
+import { getOpenAIClient, OPENAI_MODEL } from '@/lib/openai';
 import { buildMBTIPrompt, MBTI_MAP, getFallbackAnalysis } from '@/lib/mbti';
 import { prisma } from '@/lib/prisma';
 
@@ -14,7 +14,15 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body: unknown;
+
+    try {
+      body = await req.json();
+    } catch (jsonErr: unknown) {
+      console.error('[analyze-mbti] Invalid JSON body:', jsonErr);
+      return NextResponse.json({ error: 'صيغة JSON غير صحيحة' }, { status: 400 });
+    }
+
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -25,27 +33,32 @@ export async function POST(req: NextRequest) {
     }
 
     const { type, title, resultId } = parsed.data;
-
+    const openai = getOpenAIClient();
     let analysis: string;
 
-    try {
-      const prompt = buildMBTIPrompt(type.toUpperCase(), title);
-      const response = await openai.responses.create({
-        model: OPENAI_MODEL,
-        input: prompt,
-      });
-      analysis = response.output_text?.trim() || getFallbackAnalysis(type);
-    } catch (aiErr: unknown) {
-      // On quota / rate-limit / network errors → use local fallback silently
-      const isQuotaError =
-        aiErr instanceof Error &&
-        (aiErr.message.includes('429') ||
-          aiErr.message.includes('insufficient_quota') ||
-          aiErr.message.includes('rate_limit'));
-      if (!isQuotaError) {
-        console.error('[analyze-mbti] OpenAI error:', aiErr);
-      }
+    if (!openai) {
+      console.error('[analyze-mbti] Missing OPENAI_API_KEY; using fallback analysis');
       analysis = getFallbackAnalysis(type);
+    } else {
+      try {
+        const prompt = buildMBTIPrompt(type.toUpperCase(), title);
+        const response = await openai.responses.create({
+          model: OPENAI_MODEL,
+          input: prompt,
+        });
+        analysis = response.output_text?.trim() || getFallbackAnalysis(type);
+      } catch (aiErr: unknown) {
+        // On quota / rate-limit / network errors use local fallback silently.
+        const isQuotaError =
+          aiErr instanceof Error &&
+          (aiErr.message.includes('429') ||
+            aiErr.message.includes('insufficient_quota') ||
+            aiErr.message.includes('rate_limit'));
+        if (!isQuotaError) {
+          console.error('[analyze-mbti] OpenAI error:', aiErr);
+        }
+        analysis = getFallbackAnalysis(type);
+      }
     }
 
     // Persist analysis to DB if we have a result ID
@@ -59,8 +72,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ analysis });
   } catch (err: unknown) {
     console.error('[analyze-mbti] Error:', err);
-    const msg = err instanceof Error ? err.message : 'Internal server error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'حدث خطأ داخلي في الخادم' }, { status: 500 });
   }
 }
-

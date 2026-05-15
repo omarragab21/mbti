@@ -12,7 +12,15 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body: unknown;
+
+    try {
+      body = await req.json();
+    } catch (jsonErr) {
+      console.error('[POST /api/results] Invalid JSON body:', jsonErr);
+      return NextResponse.json({ error: 'صيغة JSON غير صحيحة' }, { status: 400 });
+    }
+
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {

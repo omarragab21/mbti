@@ -54,7 +54,15 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
-    const body = await req.json();
+    let body: unknown;
+
+    try {
+      body = await req.json();
+    } catch (jsonErr) {
+      console.error('[PUT /api/tests/[id]] Invalid JSON body:', jsonErr);
+      return NextResponse.json({ error: 'صيغة JSON غير صحيحة' }, { status: 400 });
+    }
+
     const parsed = updateSchema.safeParse(body);
 
     if (!parsed.success) {
