@@ -25,37 +25,35 @@ const DEFAULT_MESSAGE = `تم استلام رسالتك ✅
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
 
-  if (Array.from(searchParams.keys()).length === 0) {
+  const mode = searchParams.get('hub.mode');
+  const token = searchParams.get('hub.verify_token');
+  const challenge = searchParams.get('hub.challenge');
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+
+  if (!mode && !token && !challenge) {
     return NextResponse.json({
       status: 'ok',
       message: 'WhatsApp webhook is running',
     });
   }
 
-  const mode = searchParams.get('hub.mode');
-  const verifyToken = searchParams.get('hub.verify_token');
-  const challenge = searchParams.get('hub.challenge');
-  const expectedVerifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
-
-  if (!expectedVerifyToken) {
-    console.error('[whatsapp-webhook] Missing WHATSAPP_VERIFY_TOKEN environment variable');
+  if (!verifyToken) {
+    return NextResponse.json({ error: 'Missing WHATSAPP_VERIFY_TOKEN' }, { status: 500 });
   }
 
-  if (
-    mode === 'subscribe' &&
-    Boolean(expectedVerifyToken) &&
-    verifyToken === expectedVerifyToken &&
-    challenge
-  ) {
+  if (mode === 'subscribe' && token === verifyToken && challenge) {
     return new Response(challenge, {
       status: 200,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/plain',
       },
     });
   }
 
-  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  return NextResponse.json(
+    { error: 'Forbidden', reason: 'Invalid verify token or mode' },
+    { status: 403 }
+  );
 }
 
 export async function POST(req: NextRequest) {
