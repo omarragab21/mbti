@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
 import { MBTI_MAP } from '@/lib/mbti';
+import { getTestById, saveResult } from '@/lib/tests';
 
 const schema = z.object({
   testId: z.string().min(1),
@@ -27,9 +27,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'بيانات غير صحيحة' }, { status: 400 });
     }
 
-    const result = await prisma.result.create({
-      data: parsed.data,
-    });
+    if (!getTestById(parsed.data.testId)) {
+      return NextResponse.json({ error: 'الاختبار غير موجود' }, { status: 404 });
+    }
+
+    const result = saveResult(parsed.data);
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {

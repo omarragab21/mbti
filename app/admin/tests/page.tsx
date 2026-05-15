@@ -3,17 +3,14 @@ import { CalendarDays, Eye, FileQuestion, Pencil, Plus, Users } from 'lucide-rea
 import AppShell from '@/components/AppShell';
 import GlassCard from '@/components/ui/GlassCard';
 import PrimaryButton from '@/components/ui/PrimaryButton';
-import { prisma } from '@/lib/prisma';
+import { listTests } from '@/lib/tests';
 import { formatDate } from '@/lib/utils';
 import AdminTestActions from './AdminTestActions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminTestsPage() {
-  const tests = await prisma.test.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { questions: true, results: true } } },
-  });
+  const tests = listTests();
 
   return (
     <AppShell maxWidth="admin" contentClassName="flex flex-col gap-8 md:gap-10">

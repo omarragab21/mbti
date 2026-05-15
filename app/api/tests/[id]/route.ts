@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { deleteTest, getTestById, isSlugTaken, updateTest } from '@/lib/tests';
 
 // GET /api/tests/[id]
 export async function GET(
@@ -9,15 +9,7 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const test = await prisma.test.findUnique({
-      where: { id },
-      include: {
-        questions: {
-          orderBy: { order: 'asc' },
-          include: { options: { orderBy: { value: 'asc' } } },
-        },
-      },
-    });
+    const test = getTestById(id);
     if (!test) return NextResponse.json({ error: 'الاختبار غير موجود' }, { status: 404 });
     return NextResponse.json(test);
   } catch (err) {
@@ -72,33 +64,15 @@ export async function PUT(
     const { title, slug, intro, questions } = parsed.data;
 
     // Check slug uniqueness (excluding self)
-    const existing = await prisma.test.findFirst({ where: { slug, NOT: { id } } });
-    if (existing) {
+    if (isSlugTaken(slug, id)) {
       return NextResponse.json({ error: 'هذا الرابط مستخدم بالفعل' }, { status: 409 });
     }
 
-    // Delete old questions/options and recreate
-    await prisma.question.deleteMany({ where: { testId: id } });
+    const test = updateTest(id, { title, slug, intro, questions });
 
-    const test = await prisma.test.update({
-      where: { id },
-      data: {
-        title,
-        slug,
-        intro,
-        questions: {
-          create: questions.map((q) => ({
-            order: q.order,
-            title: q.title,
-            axis: q.axis,
-            options: {
-              create: q.options.map((o) => ({ label: o.label, value: o.value })),
-            },
-          })),
-        },
-      },
-      include: { questions: { include: { options: true } } },
-    });
+    if (!test) {
+      return NextResponse.json({ error: 'الاختبار غير موجود' }, { status: 404 });
+    }
 
     return NextResponse.json(test);
   } catch (err) {
@@ -114,7 +88,8 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    await prisma.test.delete({ where: { id } });
+    const deleted = deleteTest(id);
+    if (!deleted) return NextResponse.json({ error: 'الاختبار غير موجود' }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[DELETE /api/tests/[id]]', err);

@@ -45,7 +45,7 @@ export default function ResultCard({
   const [analysisFetched, setAnalysisFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Save result to DB on mount
+  // Register the result for the current server process.
   useEffect(() => {
     const saveResult = async () => {
       try {

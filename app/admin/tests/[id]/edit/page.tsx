@@ -2,25 +2,11 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import AdminTestForm from '@/components/AdminTestForm';
-import { prisma } from '@/lib/prisma';
+import { getTestById, type TestQuestion } from '@/lib/tests';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
-
-type TestOption = {
-  id: string;
-  label: string;
-  value: string;
-};
-
-type TestQuestion = {
-  id: string;
-  order: number;
-  title: string;
-  axis: string;
-  options: TestOption[];
-};
 
 type EditOption = {
   id?: string;
@@ -39,15 +25,7 @@ type EditQuestion = {
 export default async function EditTestPage({ params }: Props) {
   const { id } = await params;
 
-  const test = await prisma.test.findUnique({
-    where: { id },
-    include: {
-      questions: {
-        orderBy: { order: 'asc' },
-        include: { options: { orderBy: { value: 'asc' } } },
-      },
-    },
-  });
+  const test = getTestById(id);
 
   if (!test) notFound();
 

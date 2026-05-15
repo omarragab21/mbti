@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOpenAIClient, OPENAI_MODEL } from '@/lib/openai';
 import { buildMBTIPrompt, MBTI_MAP, getFallbackAnalysis } from '@/lib/mbti';
-import { prisma } from '@/lib/prisma';
 
 const schema = z.object({
   type: z.string().length(4).refine((t) => t.toUpperCase() in MBTI_MAP, {
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { type, title, resultId } = parsed.data;
+    const { type, title } = parsed.data;
     const openai = getOpenAIClient();
     let analysis: string;
 
@@ -59,14 +58,6 @@ export async function POST(req: NextRequest) {
         }
         analysis = getFallbackAnalysis(type);
       }
-    }
-
-    // Persist analysis to DB if we have a result ID
-    if (resultId) {
-      await prisma.result.update({
-        where: { id: resultId },
-        data: { aiAnalysis: analysis },
-      });
     }
 
     return NextResponse.json({ analysis });

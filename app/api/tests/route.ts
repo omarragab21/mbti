@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { createTest, isSlugTaken, listTests } from '@/lib/tests';
 
 // GET /api/tests — list all tests
 export async function GET() {
   try {
-    const tests = await prisma.test.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { questions: true, results: true } } },
-    });
-    return NextResponse.json(tests);
+    return NextResponse.json(listTests());
   } catch (err) {
     console.error('[GET /api/tests]', err);
     return NextResponse.json({ error: 'فشل تحميل الاختبارات' }, { status: 500 });
@@ -56,29 +52,11 @@ export async function POST(req: NextRequest) {
     const { title, slug, intro, questions } = parsed.data;
 
     // Check slug uniqueness
-    const existing = await prisma.test.findUnique({ where: { slug } });
-    if (existing) {
+    if (isSlugTaken(slug)) {
       return NextResponse.json({ error: 'هذا الرابط مستخدم بالفعل، اختر رابطًا آخر' }, { status: 409 });
     }
 
-    const test = await prisma.test.create({
-      data: {
-        title,
-        slug,
-        intro,
-        questions: {
-          create: questions.map((q) => ({
-            order: q.order,
-            title: q.title,
-            axis: q.axis,
-            options: {
-              create: q.options.map((o) => ({ label: o.label, value: o.value })),
-            },
-          })),
-        },
-      },
-      include: { questions: { include: { options: true } } },
-    });
+    const test = createTest({ title, slug, intro, questions });
 
     return NextResponse.json(test, { status: 201 });
   } catch (err) {

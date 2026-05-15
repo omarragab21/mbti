@@ -32,23 +32,13 @@ cp .env.example .env
 ثم أضف متغيرات البيئة في ملف `.env`:
 
 ```env
-DATABASE_URL="file:./prisma/dev.db"
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1
 ```
 
 > **ملاحظة:** لا تشارك مفتاح API أبدًا. يُستخدم فقط من جانب الخادم.
-> SQLite مناسب للتطوير المحلي فقط. في الإنتاج على Vercel استخدم قاعدة بيانات دائمة مثل PostgreSQL، ثم حدّث Prisma provider/adapter بما يناسبها قبل استقبال بيانات حقيقية.
 
-### 3. إعداد قاعدة البيانات
-
-```bash
-npx prisma generate
-npx prisma db push
-npx prisma db seed
-```
-
-### 4. تشغيل التطبيق
+### 3. تشغيل التطبيق
 
 ```bash
 npm run dev
@@ -111,21 +101,11 @@ https://yourdomain.com/t/mbti-quick-test
 
 ---
 
-## أوامر قاعدة البيانات
+## تخزين البيانات
 
-```bash
-# توليد Prisma Client
-npx prisma generate
+التطبيق لا يستخدم قاعدة بيانات. الاختبار الافتراضي موجود داخل الكود في `lib/tests.ts`.
 
-# رفع Schema إلى قاعدة البيانات
-npx prisma db push
-
-# تشغيل Seed (البيانات الافتراضية)
-npx prisma db seed
-
-# فتح واجهة إدارة قاعدة البيانات
-npm run db:studio
-```
+إدارة الاختبارات تعمل بذاكرة مؤقتة داخل عملية الخادم فقط، لذلك لا تعتمد على حفظ التعديلات بعد إعادة تشغيل الخادم أو إعادة نشر Vercel.
 
 ## النشر على Vercel
 
@@ -134,7 +114,6 @@ npm run db:studio
 ```bash
 vercel env add OPENAI_API_KEY production
 vercel env add OPENAI_MODEL production
-vercel env add DATABASE_URL production
 ```
 
 ثم انشر:
@@ -147,7 +126,7 @@ vercel link
 vercel --prod
 ```
 
-أمر البناء يشغّل `prisma generate` تلقائيًا قبل `next build`.
+أمر البناء لا يحتاج Prisma أو `DATABASE_URL`.
 
 ---
 
@@ -175,14 +154,10 @@ components/
   ShareButtons.tsx            # أزرار المشاركة
   LoadingState.tsx            # حالة التحميل
 lib/
-  prisma.ts                   # Prisma singleton
+  tests.ts                    # بيانات الاختبارات بدون قاعدة بيانات
   openai.ts                   # OpenAI client
   mbti.ts                     # منطق MBTI
   utils.ts                    # أدوات مساعدة
-prisma/
-  schema.prisma               # نموذج قاعدة البيانات
-  seed.ts                     # بيانات افتراضية
-  dev.db                      # SQLite (محلي)
 ```
 
 ---
@@ -195,8 +170,6 @@ prisma/
 | TypeScript | كتابة النوع |
 | Tailwind CSS v4 | التصميم |
 | Framer Motion | الرسوم المتحركة |
-| Prisma ORM v7 | قاعدة البيانات |
-| SQLite + better-sqlite3 | قاعدة البيانات المحلية |
 | OpenAI Node SDK | تحليل الشخصية |
 | Zod | التحقق من البيانات |
 
