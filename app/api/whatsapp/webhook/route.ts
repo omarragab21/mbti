@@ -11,7 +11,7 @@ const START_MESSAGE = `أهلًا بك في اختبار MBTI السريع 👋
 سأطرح عليك ٤ أسئلة فقط.
 جاوب برقم 1 أو 2.
 
-سؤال 1 من 4:
+السؤال 1 من 4:
 كيف تكتسب طاقتك غالبًا؟
 
 1. اجتماعي
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
   if (!mode && !token && !challenge) {
+    console.info('[whatsapp-webhook] Health check opened normally');
     return NextResponse.json({
       status: 'ok',
       message: 'WhatsApp webhook is running',
@@ -38,10 +39,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (!verifyToken) {
+    console.error('[whatsapp-webhook] Missing WHATSAPP_VERIFY_TOKEN environment variable');
     return NextResponse.json({ error: 'Missing WHATSAPP_VERIFY_TOKEN' }, { status: 500 });
   }
 
   if (mode === 'subscribe' && token === verifyToken && challenge) {
+    console.info('[whatsapp-webhook] Verification succeeded');
     return new Response(challenge, {
       status: 200,
       headers: {
@@ -49,6 +52,12 @@ export async function GET(req: NextRequest) {
       },
     });
   }
+
+  console.warn('[whatsapp-webhook] Verification failed:', {
+    mode,
+    hasToken: Boolean(token),
+    hasChallenge: Boolean(challenge),
+  });
 
   return NextResponse.json(
     { error: 'Forbidden', reason: 'Invalid verify token or mode' },
@@ -70,12 +79,25 @@ export async function POST(req: NextRequest) {
     const messages = extractIncomingTextMessages(payload);
 
     if (messages.length > 0) {
+      console.info('[whatsapp-webhook] Received text messages:', {
+        count: messages.length,
+      });
+
       after(async () => {
         for (const message of messages) {
-          const reply = isStartCommand(message.body) ? START_MESSAGE : DEFAULT_MESSAGE;
+          const isStart = isStartCommand(message.body);
+          const reply = isStart ? START_MESSAGE : DEFAULT_MESSAGE;
+
+          console.info('[whatsapp-webhook] Handling message:', {
+            from: maskWhatsAppId(message.from),
+            isStartCommand: isStart,
+          });
+
           await sendWhatsAppMessage(message.from, reply);
         }
       });
+    } else {
+      console.info('[whatsapp-webhook] Received webhook without text messages');
     }
 
     return NextResponse.json({ received: true });
@@ -133,4 +155,12 @@ function isStartCommand(body: string): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function maskWhatsAppId(id: string): string {
+  if (id.length <= 4) {
+    return '****';
+  }
+
+  return `${'*'.repeat(Math.max(id.length - 4, 0))}${id.slice(-4)}`;
 }

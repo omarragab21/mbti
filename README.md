@@ -32,8 +32,12 @@ cp .env.example .env
 ثم أضف متغيرات البيئة في ملف `.env`:
 
 ```env
+WHATSAPP_VERIFY_TOKEN=omar_mbti_verify_2026
+WHATSAPP_PHONE_NUMBER_ID=1119796387881524
+WHATSAPP_ACCESS_TOKEN=
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1
+OPENAI_MODEL=gpt-4.1-mini
+APP_URL=https://mbti-sandy.vercel.app
 ```
 
 > **ملاحظة:** لا تشارك مفتاح API أبدًا. يُستخدم فقط من جانب الخادم.
@@ -112,8 +116,12 @@ https://yourdomain.com/t/mbti-quick-test
 قبل النشر تأكد من إضافة متغيرات البيئة في Vercel:
 
 ```bash
+vercel env add WHATSAPP_VERIFY_TOKEN production
+vercel env add WHATSAPP_PHONE_NUMBER_ID production
+vercel env add WHATSAPP_ACCESS_TOKEN production
 vercel env add OPENAI_API_KEY production
 vercel env add OPENAI_MODEL production
+vercel env add APP_URL production
 ```
 
 ثم انشر:

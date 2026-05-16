@@ -10,4 +10,4 @@ export function getOpenAIClient() {
   return new OpenAI({ apiKey });
 }
 
-export const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4.1';
+export const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4.1-mini';
